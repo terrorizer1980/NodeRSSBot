@@ -19,7 +19,7 @@ const getOutlines = async function (data: string): Promise<Outline[]> {
 
 // eslint-disable-line
 export const _getOutlines = getOutlines;
-export default async (ctx: MContext, next: Next) => {
+export default async (ctx: MContext, next: Next): Promise<void> => {
     const { fileLink, lang } = ctx.state;
 
     try {
@@ -42,6 +42,9 @@ export default async (ctx: MContext, next: Next) => {
         outlines.forEach((outline) => {
             text += `\n<a href="${outline.xmlUrl}">${outline.text}</a>`;
         });
+        if (text.length > 4096) {
+            text = `<strong>${i18n[lang]['IMPORT_SUCCESS']}</strong>\n`;
+        }
         ctx.telegram.deleteMessage(ctx.state.chat.id, ctx.state.processMsgId);
         ctx.state.processMsgId = null;
         ctx.replyWithHTML(text);

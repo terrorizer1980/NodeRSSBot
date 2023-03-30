@@ -19,9 +19,7 @@ import { isNone } from '../types/option';
 async function handlerSendError(e: any, userId: number): Promise<boolean> {
     // bot was blocked or chat is deleted
     logger.error(e);
-    const re = new RegExp(
-        'chat not found|bot was blocked by the user|bot was kicked'
-    );
+    const re = /chat not found|bot was blocked by the user|bot was kicked|user is deactivated/;
     if (config.delete_on_err_send && re.test(e.description)) {
         logger.error(`delete all subscribes for user ${userId}`);
         deleteSubscribersByUserId(userId);
@@ -47,7 +45,7 @@ const send = async (
     bot: Telegraf<Context>,
     toSend: NonNullable<string | FeedItem[]>,
     feed: Feed
-) => {
+): Promise<void> => {
     const subscribers = await getSubscribersByFeedId(feed.feed_id);
     if (typeof toSend === 'string') {
         subscribers.map(async (subscribe) => {

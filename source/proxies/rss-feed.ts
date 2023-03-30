@@ -3,13 +3,14 @@ import errors from '../utils/errors';
 import { Feed } from '../types/feed';
 import { Subscribe } from '../types/subscribe';
 import { isSome, Option, Optional, Some } from '../types/option';
+import { decodeUrl } from '../utils/decodeUrl';
 
 export async function sub(
     userId: number,
     feedUrl: string,
     feedTitle: string
 ): Promise<string> {
-    feedUrl = decodeURI(feedUrl);
+    feedUrl = decodeUrl(feedUrl);
     const feed = await db<Feed>('rss_feed').where('url', feedUrl).first();
     if (feed) {
         const res = await db<Subscribe>('subscribes')
@@ -148,9 +149,11 @@ export async function getSubscribedCountByUserId(
     }
 }
 
-export async function updateFeed(feed: Feed): Promise<number> {
+export async function updateFeed(
+    feed: Partial<Feed> & { feed_id: number }
+): Promise<number> {
     try {
-        return await db('rss_feed').where('url', feed.url).update(feed);
+        return await db('rss_feed').where('feed_id', feed.feed_id).update(feed);
     } catch (e) {
         throw errors.newCtrlErr('DB_ERROR', e);
     }
@@ -211,6 +214,7 @@ export async function handleRedirect(
     realUrl: string
 ): Promise<void> {
     try {
+        realUrl = decodeUrl(realUrl);
         const oldFeed: Option<Feed> = Optional(
             await db<Feed>('rss_feed').where('url', url).first()
         );
@@ -265,7 +269,7 @@ export async function getActiveFeedWithErrorCount(
     }
 }
 
-export async function batchUnsubByFeedIds(ids: number[]) {
+export async function batchUnsubByFeedIds(ids: number[]): Promise<void> {
     try {
         await db.transaction(async (trx) => {
             await Promise.all(

@@ -60,14 +60,24 @@ async function fetch(feedModal: Feed): Promise<Option<any[]>> {
         logger.debug(`fetching ${feedUrl}`);
         const res = await got.get(encodeURI(feedUrl));
         if (encodeURI(feedUrl) !== res.url && Object.is(res.statusCode, 301)) {
-            await handleRedirect(feedUrl, decodeURI(res.url));
+            await handleRedirect(feedUrl, res.url);
         }
         const feed = await parseString(res.body);
 
         const items = feed.items.slice(0, item_num);
-        feedModal.error_count = 0;
-        feedModal.feed_title = feed.title;
-        await updateFeed(feedModal);
+        const updatedFeedModal: Partial<Feed> & { feed_id: number } = {
+            feed_id: feedModal.feed_id,
+            error_count: 0
+        };
+        if (
+            feedModal.error_count !== 0 ||
+            feed.title !== feedModal.feed_title
+        ) {
+            if (feed.title !== feedModal.feed_title) {
+                updatedFeedModal.feed_title = feed.title;
+            }
+            await updateFeed(updatedFeedModal);
+        }
         return Optional(
             items.map((item) => {
                 const { link, title, id } = item;
